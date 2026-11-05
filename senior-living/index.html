@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indianapolis Senior Living Map</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="vendor/MarkerCluster.css">
+<link rel="stylesheet" href="vendor/MarkerCluster.Default.css">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-0: #f3f3f1;
+    --surface-1: #fcfcfb;
+    --border: #e1e0db;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #77756f;
+    --accent: #2a78d6;
+    --series-1: #2a78d6; /* Nursing home */
+    --series-2: #eb6834; /* Assisted living / memory care */
+    --series-3: #1baf7a; /* Independent living / senior community */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface-0: #121211;
+      --surface-1: #1a1a19;
+      --border: #33322f;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --text-muted: #9a988f;
+      --accent: #3987e5;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--surface-0); color: var(--text-primary);
+    display: grid; grid-template-rows: auto auto 1fr; height: 100vh;
+  }
+  header { padding: 14px 20px 6px; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 650; }
+  header p { margin: 2px 0 0; color: var(--text-secondary); font-size: 13px; }
+  .tiles { display: flex; gap: 10px; padding: 8px 20px 12px; flex-wrap: wrap; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 14px; min-width: 150px; flex: 1 1 150px;
+  }
+  .tile .label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .tile .value { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+  main { display: grid; grid-template-columns: 360px 1fr; min-height: 0; border-top: 1px solid var(--border); }
+  aside {
+    background: var(--surface-1); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .filters { padding: 12px 14px; border-bottom: 1px solid var(--border); display: grid; gap: 10px; }
+  .filters input[type=search], .filters select {
+    width: 100%; padding: 7px 9px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface-0); color: var(--text-primary); font: inherit;
+  }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .types { display: flex; flex-direction: column; gap: 4px; }
+  .types label { display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--text-primary); }
+  .types .count { margin-left: auto; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .small { font-size: 12px; color: var(--text-muted); }
+  #status { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); display: grid; gap: 2px; }
+  #status .ok::before { content: "✓ "; color: var(--series-3); }
+  #status .err::before { content: "! "; color: #e34948; font-weight: 700; }
+  #status .wait::before { content: "… "; }
+  #list { overflow-y: auto; flex: 1; }
+  .item { padding: 9px 14px; border-bottom: 1px solid var(--border); cursor: pointer; display: grid; grid-template-columns: 18px 1fr; gap: 0 8px; }
+  .item:hover, .item:focus { background: var(--surface-0); outline: none; }
+  .item .swatch { margin-top: 5px; }
+  .item .nm { font-weight: 600; }
+  .item .meta { grid-column: 2; color: var(--text-secondary); font-size: 12px; }
+  #map { height: 100%; width: 100%; }
+  /* markers */
+  .pin {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.4); color: #fff; font: 700 11px/18px system-ui, sans-serif; text-align: center;
+  }
+  /* popup */
+  .leaflet-popup-content { margin: 12px 14px; min-width: 250px; font: 13px/1.45 system-ui, sans-serif; }
+  .pp h3 { margin: 0 0 4px; font-size: 15px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: #eeede9; color: #0b0b0b; margin: 0 4px 6px 0; }
+  .pp table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+  .pp td { padding: 2px 0; vertical-align: top; }
+  .pp td:first-child { color: #52514e; padding-right: 10px; white-space: nowrap; }
+  .stars { color: #b07a00; letter-spacing: 1px; }
+  .pp .links { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
+  .pp .note { font-size: 11px; color: #77756f; margin-top: 6px; }
+  @media (max-width: 800px) {
+    body { height: auto; }
+    main { grid-template-columns: 1fr; }
+    aside { max-height: 45vh; }
+    #map { height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Senior Living in Indianapolis &amp; Surrounding Areas</h1>
+  <p>Nursing homes, assisted living, independent living and senior communities in Marion, Hamilton, Hendricks, Johnson, Boone, Hancock, Morgan, Shelby and Madison counties. Click any pin or list entry for details.</p>
+</header>
+
+<section class="tiles" aria-label="Summary">
+  <div class="tile"><div class="label">Communities shown</div><div class="value" id="t-total">–</div></div>
+  <div class="tile"><div class="label"><span class="swatch" style="background:var(--series-1)"></span>Nursing homes</div><div class="value" id="t-nursing">–</div></div>
+  <div class="tile"><div class="label"><span class="swatch" style="background:var(--series-2)"></span>Assisted living / memory care</div><div class="value" id="t-assisted">–</div></div>
+  <div class="tile"><div class="label"><span class="swatch" style="background:var(--series-3)"></span>Independent living / senior communities</div><div class="value" id="t-independent">–</div></div>
+  <div class="tile"><div class="label">Avg. Medicare rating (nursing homes)</div><div class="value" id="t-rating">–</div></div>
+</section>
+
+<main>
+  <aside>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search by name, street, city or ZIP…" aria-label="Search">
+      <div class="types" id="types"></div>
+      <div class="row">
+        <select id="city" aria-label="City"><option value="">All cities</option></select>
+        <select id="rating" aria-label="Minimum Medicare rating">
+          <option value="0">Any rating</option>
+          <option value="2">2★ and up</option>
+          <option value="3">3★ and up</option>
+          <option value="4">4★ and up</option>
+          <option value="5">5★ only</option>
+        </select>
+      </div>
+      <div class="row">
+        <select id="sort" aria-label="Sort">
+          <option value="name">Sort: Name A–Z</option>
+          <option value="rating">Sort: Highest rating</option>
+          <option value="beds">Sort: Most beds</option>
+          <option value="dist">Sort: Nearest downtown</option>
+        </select>
+      </div>
+      <div class="small" id="shown"></div>
+    </div>
+    <div id="status" aria-live="polite"></div>
+    <div id="list" role="list"></div>
+  </aside>
+  <div id="map" aria-label="Map of senior living communities"></div>
+</main>
+
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/leaflet.markercluster.js"></script>
+<script src="directory.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- config ----------
+  const COUNTIES = ["MARION", "HAMILTON", "HENDRICKS", "JOHNSON", "BOONE", "HANCOCK", "MORGAN", "SHELBY", "MADISON"];
+  const BBOX = { s: 39.40, w: -86.65, n: 40.20, e: -85.55 };   // generous box around the 9 counties
+  const DOWNTOWN = [39.7684, -86.1581];
+  const CACHE_HOURS = 24;
+  const TYPES = {
+    nursing:     { label: "Nursing home (skilled nursing)",        short: "N", color: "var(--series-1)" },
+    assisted:    { label: "Assisted living / memory care",         short: "A", color: "var(--series-2)" },
+    independent: { label: "Independent living / senior community", short: "I", color: "var(--series-3)" },
+  };
+  const CMS_URL = "https://data.cms.gov/provider-data/api/1/datastore/query/4pq5-n9py/0";
+  const OVERPASS_URLS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const titleCase = (s) => String(s || "").toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase())
+    .replace(/\b(Llc|Inc|Lp|Ii|Iii)\b/g, (m) => m.toUpperCase()).replace(/\bOf\b/g, "of").replace(/\bAnd\b/g, "and").replace(/\bAt\b/g, "at").replace(/\bThe\b(?!^)/g, (m, i) => (i ? "the" : m));
+  const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const normName = (s) => String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\b(the|of|at|and|llc|inc|center|centre|community|senior|living|health|healthcare|campus|care|rehabilitation|rehab|nursing|home)\b/g, " ").replace(/\s+/g, " ").trim();
+  function distKm(a, b) {
+    const R = 6371, toR = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * toR, dLng = (b[1] - a[1]) * toR;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * toR) * Math.cos(b[0] * toR) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function fmtPhone(p) {
+    const d = String(p || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+    return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : (p || "");
+  }
+  function stars(n) {
+    if (!n) return "";
+    return `<span class="stars" aria-label="${n} out of 5 stars">${"★".repeat(n)}${"☆".repeat(5 - n)}</span>`;
+  }
+  // Pick a field from a record by trying several possible column names.
+  function pick(o, names) {
+    for (const n of names) if (o[n] != null && o[n] !== "") return o[n];
+    const keys = Object.keys(o);
+    for (const n of names) {
+      const k = keys.find((k) => k.toLowerCase().replace(/[^a-z]/g, "") === n.toLowerCase().replace(/[^a-z]/g, ""));
+      if (k && o[k] !== "") return o[k];
+    }
+    return null;
+  }
+  function cacheGet(key) {
+    try {
+      const c = JSON.parse(localStorage.getItem(key));
+      if (c && Date.now() - c.t < CACHE_HOURS * 3600e3) return c.d;
+    } catch (e) {}
+    return null;
+  }
+  function cacheSet(key, d) { try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d })); } catch (e) {} }
+  async function fetchJSON(url, opts, ms) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms || 45000);
+    try {
+      const r = await fetch(url, Object.assign({ signal: ctl.signal }, opts || {}));
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    } finally { clearTimeout(timer); }
+  }
+
+  // ---------- data sources ----------
+  // 1) Medicare (CMS) Care Compare — every Medicare/Medicaid-certified nursing home, with star ratings.
+  async function loadCMS() {
+    const cached = cacheGet("sl-cms-v1");
+    if (cached) return cached;
+    const rows = [];
+    for (let offset = 0; offset < 5000; offset += 500) {
+      const qs = new URLSearchParams({
+        limit: "500", offset: String(offset), count: "true", results: "true",
+        "conditions[0][property]": "state", "conditions[0][value]": "IN", "conditions[0][operator]": "=",
+      });
+      const j = await fetchJSON(CMS_URL + "?" + qs.toString());
+      const batch = j.results || [];
+      rows.push(...batch);
+      if (batch.length < 500) break;
+    }
+    const out = [];
+    for (const r of rows) {
+      const county = String(pick(r, ["countyparish", "county_name", "provider_county_name", "county"]) || "").toUpperCase().replace(/\s*COUNTY$/, "");
+      if (!COUNTIES.includes(county)) continue;
+      let lat = num(pick(r, ["latitude", "lat"])), lng = num(pick(r, ["longitude", "long", "lng", "lon"]));
+      if (lat == null || lng == null) {
+        const loc = String(pick(r, ["location"]) || "");
+        const m = loc.match(/(-?\d+\.\d+)[ ,]+(-?\d+\.\d+)/);
+        if (m) { const a = +m[1], b = +m[2]; if (a > 0) { lat = a; lng = b; } else { lng = a; lat = b; } }
+      }
+      if (lat == null || lng == null) continue;
+      const ccn = pick(r, ["cms_certification_number_ccn", "federal_provider_number", "provnum", "ccn"]);
+      out.push({
+        id: "cms-" + ccn,
+        source: "cms",
+        type: "nursing",
+        name: titleCase(pick(r, ["provider_name", "facility_name", "provname"])),
+        address: titleCase(pick(r, ["provider_address", "address"])),
+        city: titleCase(pick(r, ["citytown", "provider_city", "city"])),
+        zip: String(pick(r, ["zip_code", "provider_zip_code", "zip"]) || "").slice(0, 5),
+        county: titleCase(county),
+        phone: fmtPhone(pick(r, ["telephone_number", "provider_phone_number", "phone"])),
+        lat, lng, ccn,
+        beds: num(pick(r, ["number_of_certified_beds", "certified_beds", "bedcert"])),
+        residents: num(pick(r, ["average_number_of_residents_per_day", "residents_per_day", "restot"])),
+        ownership: pick(r, ["ownership_type", "ownership"]),
+        legalName: pick(r, ["legal_business_name"]),
+        rating: num(pick(r, ["overall_rating"])),
+        inspRating: num(pick(r, ["health_inspection_rating"])),
+        staffRating: num(pick(r, ["staffing_rating"])),
+        qmRating: num(pick(r, ["qm_rating", "quality_measure_rating"])),
+        ccrc: /^y/i.test(String(pick(r, ["continuing_care_retirement_community", "ccrc"]) || "")),
+        sff: pick(r, ["special_focus_status"]),
+        abuse: /^y/i.test(String(pick(r, ["abuse_icon"]) || "")),
+      });
+    }
+    cacheSet("sl-cms-v1", out);
+    return out;
+  }
+
+  // 2) OpenStreetMap — assisted living, independent living, retirement and senior communities.
+  async function loadOSM() {
+    const cached = cacheGet("sl-osm-v1");
+    if (cached) return cached;
+    const b = `(${BBOX.s},${BBOX.w},${BBOX.n},${BBOX.e})`;
+    const q = `[out:json][timeout:90];
+(
+  nwr["amenity"="nursing_home"]${b};
+  nwr["healthcare"="nursing_home"]${b};
+  nwr["amenity"="retirement_home"]${b};
+  nwr["social_facility"~"^(assisted_living|nursing_home)$"]${b};
+  nwr["social_facility:for"~"senior|elderly|aged"]${b};
+  nwr["name"~"senior living|senior apartments|senior residences|senior village|retirement|independent living|assisted living|memory care|life plan|health campus|healthcare center|nursing|rehabilitation center",i]${b};
+);
+out center tags;`;
+    let j, lastErr;
+    for (const url of OVERPASS_URLS) {
+      try { j = await fetchJSON(url, { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } }, 90000); break; }
+      catch (e) { lastErr = e; }
+    }
+    if (!j) throw lastErr || new Error("Overpass unavailable");
+    const out = [];
+    for (const el of j.elements || []) {
+      const t = el.tags || {};
+      const name = t.name || t["official_name"];
+      if (!name) continue;
+      const lat = el.lat != null ? el.lat : el.center && el.center.lat;
+      const lng = el.lon != null ? el.lon : el.center && el.center.lon;
+      if (lat == null) continue;
+      const isFacilityTag = t.amenity === "nursing_home" || t.healthcare === "nursing_home" || t.amenity === "retirement_home" || t.social_facility || t["social_facility:for"];
+      // Name-only matches: drop obvious non-residences (offices, shops, hospitals, clinics, schools, etc.)
+      if (!isFacilityTag) {
+        if (t.office || t.shop || t.highway || t.leisure || t.craft) continue;
+        if (["hospital", "clinic", "doctors", "school", "college", "bank", "place_of_worship", "pharmacy", "dentist", "parking"].includes(t.amenity)) continue;
+        if (t.healthcare && t.healthcare !== "nursing_home") continue;
+        if (/rehabilitation|nursing/i.test(name) && !/home|center|centre|campus|village|manor|care/i.test(name)) continue;
+        if (/school|college|university|nursing program|physical therapy|outpatient|hospital/i.test(name)) continue;
+      }
+      const sf = t.social_facility || "";
+      let type;
+      if (sf === "assisted_living" || /assisted living|memory care|alzheimer/i.test(name)) type = "assisted";
+      else if (t.amenity === "nursing_home" || t.healthcare === "nursing_home" || sf === "nursing_home" || /nursing|rehabilitation|health ?care center|health campus|healthcare/i.test(name)) type = "nursing";
+      else type = "independent";
+      const street = [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" ");
+      out.push({
+        id: "osm-" + el.type + el.id,
+        source: "osm",
+        osmUrl: `https://www.openstreetmap.org/${el.type}/${el.id}`,
+        type, name, lat, lng,
+        address: street || null,
+        city: t["addr:city"] || null,
+        zip: t["addr:postcode"] || null,
+        phone: fmtPhone(t.phone || t["contact:phone"]),
+        website: t.website || t["contact:website"] || null,
+        operator: t.operator || null,
+        beds: num(t.beds || t.capacity),
+        hours: t.opening_hours || null,
+      });
+    }
+    cacheSet("sl-osm-v1", out);
+    return out;
+  }
+
+  // 3) Built-in starter directory (directory.js)
+  function loadDirectory() {
+    return (window.SENIOR_DIRECTORY || []).map((d, i) => Object.assign({ id: "dir-" + i, source: "dir" }, d));
+  }
+
+  // ---------- merge & de-duplicate ----------
+  function sameFacility(a, b) {
+    const d = distKm([a.lat, a.lng], [b.lat, b.lng]);
+    if (d > 0.6) return false;
+    const na = normName(a.name), nb = normName(b.name);
+    if (na && nb && (na === nb || na.includes(nb) || nb.includes(na))) return true;
+    const ta = new Set(na.split(" ").filter((w) => w.length > 2)), tb = nb.split(" ").filter((w) => w.length > 2);
+    const shared = tb.filter((w) => ta.has(w)).length;
+    return shared > 0 && shared / Math.min(ta.size || 1, tb.length || 1) >= 0.5 && d < 0.4;
+  }
+  function merge(primary, extra) {
+    // Fill blanks in primary with whatever extra knows (website, phone, etc.)
+    for (const k of ["website", "phone", "operator", "address", "city", "zip", "osmUrl", "care", "lifePlan", "hours"]) {
+      if ((primary[k] == null || primary[k] === "") && extra[k] != null && extra[k] !== "") primary[k] = extra[k];
+    }
+    primary.alsoIn = (primary.alsoIn || []).concat(extra.source);
+  }
+  function combine(cms, osm, dir) {
+    const all = cms.slice();
+    for (const list of [dir, osm]) {
+      for (const f of list) {
+        // A directory campus that matches a Medicare nursing home keeps its own pin
+        // (it's a whole community); it just links to the nursing wing's ratings.
+        if (f.source === "dir") {
+          const snf = all.find((g) => g.source === "cms" && sameFacility(g, f));
+          if (snf) {
+            all.push(Object.assign({}, f, { snf: { name: snf.name, rating: snf.rating, ccn: snf.ccn } }));
+            Object.assign(snf, { lifePlan: true, campus: f.name });
+            continue;
+          }
+        }
+        const twin = all.find((g) => sameFacility(g, f));
+        if (twin) {
+          // A directory entry describes the whole campus; keep its broader type if the twin is a CMS nursing wing.
+          merge(twin, f);
+          if (f.source === "dir" && twin.source === "osm") { twin.type = f.type; }
+        } else all.push(Object.assign({}, f));
+      }
+    }
+    for (const f of all) {
+      f.dist = distKm(DOWNTOWN, [f.lat, f.lng]);
+      f.search = [f.name, f.address, f.city, f.zip, f.county, f.operator, f.legalName].filter(Boolean).join(" ").toLowerCase();
+    }
+    return all;
+  }
+
+  // ---------- map ----------
+  const map = L.map("map", { zoomControl: true }).setView(DOWNTOWN, 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Nursing home data: <a href="https://www.medicare.gov/care-compare/">Medicare Care Compare</a>',
+  }).addTo(map);
+  const cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40, spiderfyOnMaxZoom: true });
+  map.addLayer(cluster);
+  const legend = L.control({ position: "bottomright" });
+  legend.onAdd = function () {
+    const div = L.DomUtil.create("div");
+    div.style.cssText = "background:var(--surface-1);color:var(--text-primary);padding:8px 10px;border-radius:8px;border:1px solid var(--border);font:12px system-ui,sans-serif;line-height:1.8";
+    div.innerHTML = Object.entries(TYPES).map(([k, t]) =>
+      `<div style="display:flex;align-items:center;gap:6px"><span class="pin" style="width:18px;height:18px;line-height:14px;font-size:10px;background:${t.color}">${t.short}</span>${t.label}</div>`).join("");
+    return div;
+  };
+  legend.addTo(map);
+
+  function icon(type) {
+    const t = TYPES[type];
+    return L.divIcon({ className: "", html: `<div class="pin" style="background:${t.color}">${t.short}</div>`, iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -10] });
+  }
+
+  function popupHTML(f) {
+    const t = TYPES[f.type];
+    const addr = [f.address, [f.city, "IN"].filter(Boolean).join(", "), f.zip].filter(Boolean).join(", ").replace(", IN, ", ", IN ");
+    const rows = [];
+    if (addr) rows.push(["Address", esc(addr)]);
+    if (f.county) rows.push(["County", esc(f.county)]);
+    if (f.phone) rows.push(["Phone", `<a href="tel:${esc(f.phone.replace(/\D/g, ""))}">${esc(f.phone)}</a>`]);
+    if (f.campus) rows.push(["Part of", esc(f.campus)]);
+    if (f.snf) rows.push(["On-site nursing", esc(f.snf.name) + (f.snf.rating ? " " + stars(f.snf.rating) : "")]);
+    if (f.rating) rows.push(["Medicare overall", stars(f.rating) + ` ${f.rating}/5`]);
+    if (f.inspRating) rows.push(["Health inspections", stars(f.inspRating)]);
+    if (f.staffRating) rows.push(["Staffing", stars(f.staffRating)]);
+    if (f.qmRating) rows.push(["Quality measures", stars(f.qmRating)]);
+    if (f.beds) rows.push([f.source === "cms" ? "Certified beds" : "Beds / capacity", esc(f.beds)]);
+    if (f.residents) rows.push(["Avg. residents/day", esc(Math.round(f.residents))]);
+    if (f.ownership) rows.push(["Ownership", esc(f.ownership)]);
+    if (f.operator) rows.push(["Operator", esc(f.operator)]);
+    if (f.care && f.care.length) rows.push(["Care offered", esc(f.care.join(", "))]);
+    if (f.hours) rows.push(["Hours", esc(f.hours)]);
+    rows.push(["Distance", `${(f.dist * 0.621371).toFixed(1)} mi from downtown`]);
+
+    const badges = [`<span class="badge"><span class="swatch" style="background:${t.color}"></span>${esc(t.label)}</span>`];
+    if (f.lifePlan || f.ccrc) badges.push(`<span class="badge">Life plan community (CCRC)</span>`);
+    if (f.sff && /sff|special/i.test(f.sff)) badges.push(`<span class="badge">⚠ Special Focus Facility</span>`);
+    if (f.abuse) badges.push(`<span class="badge">⚠ Abuse citation</span>`);
+
+    const links = [];
+    links.push(`<a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr || f.lat + "," + f.lng)}">Directions</a>`);
+    if (f.website) links.push(`<a target="_blank" rel="noopener" href="${esc(/^https?:/i.test(f.website) ? f.website : "https://" + f.website)}">Website</a>`);
+    if (f.snf && f.snf.ccn) links.push(`<a target="_blank" rel="noopener" href="https://www.medicare.gov/care-compare/details/nursing-home/${esc(f.snf.ccn)}">Nursing wing on Care Compare</a>`);
+    if (f.ccn) links.push(`<a target="_blank" rel="noopener" href="https://www.medicare.gov/care-compare/details/nursing-home/${esc(f.ccn)}">Medicare Care Compare</a>`);
+    if (f.osmUrl) links.push(`<a target="_blank" rel="noopener" href="${esc(f.osmUrl)}">Map record</a>`);
+    links.push(`<a target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(f.name + " " + (f.city || "Indianapolis") + " IN reviews")}">Reviews</a>`);
+
+    const srcName = { cms: "Medicare (CMS) Care Compare", osm: "OpenStreetMap", dir: "Built-in directory (pin approximate)" };
+    const srcs = [f.source].concat(f.alsoIn || []).map((s) => srcName[s]).filter((v, i, a) => a.indexOf(v) === i);
+    return `<div class="pp">
+      <h3>${esc(f.name)}</h3>
+      ${badges.join("")}
+      <table>${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>
+      <div class="links">${links.join("")}</div>
+      <div class="note">Source: ${esc(srcs.join(" + "))}. Always confirm availability, pricing and care levels directly with the community.</div>
+    </div>`;
+  }
+
+  // ---------- UI state ----------
+  let data = [];
+  const markers = new Map();
+  const state = { q: "", types: new Set(Object.keys(TYPES)), city: "", rating: 0, sort: "name" };
+
+  $("types").innerHTML = Object.entries(TYPES).map(([k, t]) =>
+    `<label><input type="checkbox" value="${k}" checked><span class="swatch" style="background:${t.color}"></span>${t.label}<span class="count" id="c-${k}">0</span></label>`).join("");
+  $("types").addEventListener("change", (e) => { e.target.checked ? state.types.add(e.target.value) : state.types.delete(e.target.value); render(); });
+  $("q").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); render(); });
+  $("city").addEventListener("change", (e) => { state.city = e.target.value; render(true); });
+  $("rating").addEventListener("change", (e) => { state.rating = +e.target.value; render(); });
+  $("sort").addEventListener("change", (e) => { state.sort = e.target.value; render(); });
+
+  function filtered() {
+    return data.filter((f) =>
+      state.types.has(f.type) &&
+      (!state.q || f.search.includes(state.q)) &&
+      (!state.city || (f.city || "") === state.city) &&
+      (!state.rating || (f.rating || 0) >= state.rating));
+  }
+
+  function openFacility(f) {
+    const m = markers.get(f.id);
+    if (!m) return;
+    cluster.zoomToShowLayer(m, () => { map.panTo(m.getLatLng()); m.openPopup(); });
+  }
+
+  function render(fit) {
+    const rows = filtered();
+    const sorters = {
+      name: (a, b) => a.name.localeCompare(b.name),
+      rating: (a, b) => (b.rating || 0) - (a.rating || 0) || a.name.localeCompare(b.name),
+      beds: (a, b) => (b.beds || 0) - (a.beds || 0) || a.name.localeCompare(b.name),
+      dist: (a, b) => a.dist - b.dist,
+    };
+    rows.sort(sorters[state.sort]);
+
+    cluster.clearLayers();
+    cluster.addLayers(rows.map((f) => markers.get(f.id)));
+
+    // tiles + counts
+    const by = { nursing: 0, assisted: 0, independent: 0 };
+    rows.forEach((f) => by[f.type]++);
+    $("t-total").textContent = rows.length.toLocaleString();
+    for (const k in by) $("t-" + k).textContent = by[k].toLocaleString();
+    const rated = rows.filter((f) => f.rating);
+    $("t-rating").textContent = rated.length ? (rated.reduce((s, f) => s + f.rating, 0) / rated.length).toFixed(1) + " ★" : "–";
+    const allBy = { nursing: 0, assisted: 0, independent: 0 };
+    data.forEach((f) => allBy[f.type]++);
+    for (const k in allBy) $("c-" + k).textContent = allBy[k];
+    $("shown").textContent = `Showing ${rows.length} of ${data.length} communities`;
+
+    // list
+    const list = $("list");
+    list.innerHTML = rows.map((f) => {
+      const t = TYPES[f.type];
+      const meta = [f.address, f.city].filter(Boolean).join(", ");
+      const extra = [f.rating ? "★".repeat(f.rating) : "", f.beds ? f.beds + " beds" : "", (f.dist * 0.621371).toFixed(1) + " mi"].filter(Boolean).join(" · ");
+      return `<div class="item" role="listitem" tabindex="0" data-id="${esc(f.id)}"><span class="swatch" style="background:${t.color}" title="${esc(t.label)}"></span>
+        <div class="nm">${esc(f.name)}</div><div class="meta">${esc(meta)}</div><div class="meta">${esc(t.label)}${extra ? " · " + esc(extra) : ""}</div></div>`;
+    }).join("") || `<div class="item"><div></div><div class="meta">No communities match these filters.</div></div>`;
+
+    if (fit && rows.length) map.fitBounds(L.latLngBounds(rows.map((f) => [f.lat, f.lng])).pad(0.1), { maxZoom: 14 });
+  }
+
+  $("list").addEventListener("click", (e) => {
+    const el = e.target.closest(".item[data-id]");
+    if (el) openFacility(data.find((f) => f.id === el.dataset.id));
+  });
+  $("list").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { const el = e.target.closest(".item[data-id]"); if (el) openFacility(data.find((f) => f.id === el.dataset.id)); }
+  });
+
+  function rebuild(cms, osm, dir) {
+    data = combine(cms, osm, dir);
+    markers.clear();
+    for (const f of data) {
+      const m = L.marker([f.lat, f.lng], { icon: icon(f.type), title: f.name, keyboard: true });
+      m.bindPopup(() => popupHTML(f), { maxWidth: 340 });
+      markers.set(f.id, m);
+    }
+    const cities = [...new Set(data.map((f) => f.city).filter(Boolean))].sort();
+    const sel = $("city"), cur = sel.value;
+    sel.innerHTML = `<option value="">All cities</option>` + cities.map((c) => `<option${c === cur ? " selected" : ""}>${esc(c)}</option>`).join("");
+    render();
+  }
+
+  // ---------- load ----------
+  const status = { cms: ["wait", "Loading Medicare nursing home data…"], osm: ["wait", "Loading assisted & independent living from OpenStreetMap…"] };
+  function showStatus() {
+    $("status").innerHTML = Object.values(status).map(([c, m]) => `<div class="${c}">${esc(m)}</div>`).join("");
+  }
+  showStatus();
+  const dir = loadDirectory();
+  let cms = [], osm = [];
+  rebuild(cms, osm, dir);
+
+  loadCMS().then((r) => { cms = r; status.cms = ["ok", `${r.length} Medicare-certified nursing homes (CMS Care Compare)`]; })
+    .catch((e) => { status.cms = ["err", "Couldn't reach Medicare data (" + e.message + "). Try refreshing."]; })
+    .finally(() => { showStatus(); rebuild(cms, osm, dir); });
+  loadOSM().then((r) => { osm = r; status.osm = ["ok", `${r.length} places from OpenStreetMap`]; })
+    .catch((e) => { status.osm = ["err", "Couldn't reach OpenStreetMap data (" + e.message + "). Try refreshing."]; })
+    .finally(() => { showStatus(); rebuild(cms, osm, dir); });
+})();
+</script>
+</body>
+</html>
