@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indianapolis Service Companies Dashboard</title>
+  <link rel="stylesheet" href="vendor/leaflet.css">
+  <link rel="stylesheet" href="vendor/MarkerCluster.css">
+  <link rel="stylesheet" href="vendor/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Service Companies · Indianapolis + 50 mi</h1>
+      <p class="sub" id="subtitle">Loading…</p>
+    </div>
+    <button id="exportBtn" class="btn" type="button">Export CSV</button>
+  </header>
+
+  <section class="kpis" aria-label="Summary">
+    <div class="kpi"><span class="kpi-label">Companies shown</span><span class="kpi-value" id="kpiCount">–</span></div>
+    <div class="kpi"><span class="kpi-label">Service categories</span><span class="kpi-value" id="kpiCats">–</span></div>
+    <div class="kpi"><span class="kpi-label">With phone</span><span class="kpi-value" id="kpiPhone">–</span></div>
+    <div class="kpi"><span class="kpi-label">With website</span><span class="kpi-value" id="kpiWeb">–</span></div>
+    <div class="kpi"><span class="kpi-label">Cities / towns</span><span class="kpi-value" id="kpiCities">–</span></div>
+  </section>
+
+  <section class="filters" aria-label="Filters">
+    <input id="search" type="search" placeholder="Search name, city, street…" aria-label="Search">
+    <select id="city" aria-label="City"><option value="">All cities</option></select>
+    <label class="radius">Within <output id="radiusOut">50</output> mi
+      <input id="radius" type="range" min="5" max="50" step="5" value="50">
+    </label>
+    <label class="chk"><input id="hasPhone" type="checkbox"> Has phone</label>
+    <label class="chk"><input id="hasWeb" type="checkbox"> Has website</label>
+    <select id="sort" aria-label="Sort">
+      <option value="name">Sort: Name</option>
+      <option value="distance">Sort: Distance</option>
+      <option value="completeness">Sort: Most info</option>
+    </select>
+  </section>
+  <div class="chips" id="chips" role="group" aria-label="Categories"></div>
+
+  <main class="layout">
+    <aside class="list-pane">
+      <div class="list-head"><span id="listCount"></span></div>
+      <ul id="list" class="list"></ul>
+    </aside>
+    <div class="map-pane"><div id="map"></div></div>
+    <aside id="detail" class="detail" hidden>
+      <button class="close" id="closeDetail" type="button" aria-label="Close details">×</button>
+      <div id="detailBody"></div>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    Data: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> (ODbL).
+    Listings are community-maintained and may be incomplete; verify before relying on them.
+  </footer>
+
+  <script src="vendor/leaflet.js"></script>
+  <script src="vendor/leaflet.markercluster.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
