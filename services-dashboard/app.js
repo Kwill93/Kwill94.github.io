@@ -139,6 +139,7 @@
         ${row('Email', c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`)}
         ${row('Employees', c.employees && esc(c.employees))}
         ${row('Hours', c.hours && esc(c.hours))}
+        ${c.rating ? row('Google rating', `${c.rating} ★ (${(c.rating_count || 0).toLocaleString()} reviews)`) : ''}
         ${c.operator ? row('Operator / brand', esc(c.operator)) : ''}
         ${c.facebook ? row('Facebook', `<a href="${esc(c.facebook.startsWith('http') ? c.facebook : 'https://facebook.com/' + c.facebook)}" target="_blank" rel="noopener">Page</a>`) : ''}
         ${c.description ? row('About', esc(c.description)) : ''}
@@ -153,7 +154,8 @@
         <a target="_blank" rel="noopener" href="https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(c.name)}">LinkedIn (employees)</a>
         <a target="_blank" rel="noopener" href="https://www.bbb.org/search?find_country=USA&find_text=${encodeURIComponent(c.name)}&find_loc=${encodeURIComponent((c.city || 'Indianapolis') + ', IN')}">BBB</a>
         <a target="_blank" rel="noopener" href="https://bsd.sos.in.gov/publicbusinesssearch">IN Sec. of State</a>
-        <a target="_blank" rel="noopener" href="${esc(c.osm_url)}">Edit / source (OSM)</a>
+        ${c.google_url ? `<a target="_blank" rel="noopener" href="${esc(c.google_url)}">Google listing</a>` : ''}
+        ${c.osm_url ? `<a target="_blank" rel="noopener" href="${esc(c.osm_url)}">Edit / source (OSM)</a>` : ''}
       </div>`;
     $('detail').hidden = false;
   }

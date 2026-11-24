@@ -1,0 +1,53 @@
+name: Refresh service-company data
+
+on:
+  workflow_dispatch:
+    inputs:
+      google_places:
+        description: "Also enrich with Google Places (needs GOOGLE_PLACES_API_KEY secret; billed by Google)"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 9 * * 1"   # Mondays 09:17 UTC (OpenStreetMap only, free)
+  push:
+    paths:
+      - "services-dashboard/scripts/**"
+      - ".github/workflows/refresh-services-data.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-services-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch companies from OpenStreetMap
+        working-directory: services-dashboard
+        run: python3 scripts/fetch_osm.py
+
+      - name: Enrich with Google Places (manual runs only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.google_places }}
+        working-directory: services-dashboard
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: python3 scripts/enrich_places.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services-dashboard/data/companies.json
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Refresh service-company data"
+          git pull --rebase
+          git push

@@ -22,6 +22,21 @@ cd services-dashboard
 python3 scripts/fetch_osm.py   # standard library only, takes about 1 to 3 minutes
 ```
 
+A GitHub Actions workflow (`.github/workflows/refresh-services-data.yml`) runs this
+automatically whenever the scripts change, and every Monday, and commits the result.
+
+### Optional: Google Places enrichment
+
+`scripts/enrich_places.py` fills in missing phones, websites and hours, adds Google ratings,
+and adds companies that OpenStreetMap doesn't have. It never runs on a schedule:
+
+1. Create a Google Cloud API key with **Places API (New)** enabled.
+2. Add it as the repository secret `GOOGLE_PLACES_API_KEY` (Settings → Secrets and variables → Actions).
+3. Actions → *Refresh service-company data* → **Run workflow** → tick *Also enrich with Google Places*.
+
+Each run makes up to 800 Text Search requests (set `MAX_REQUESTS` to change that). Google
+bills these, so check current pricing first. The weekly OpenStreetMap refresh keeps the Google data.
+
 To add or remove trades, edit the `CATEGORIES` map in `scripts/fetch_osm.py`.
 
 **Limitations:** OpenStreetMap is free and open, but it is community-maintained. Coverage

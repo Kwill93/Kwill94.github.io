@@ -176,8 +176,23 @@ def main():
             "description": t.get("description"),
             "osm_url": f"https://www.openstreetmap.org/{el['type']}/{el['id']}",
         })
-    out.sort(key=lambda c: (c["categories"][0], c["name"].lower()))
     dest = os.path.join(os.path.dirname(__file__), "..", "data", "companies.json")
+    # Keep anything a previous Google Places enrichment added, so the weekly
+    # OSM refresh doesn't throw it away.
+    try:
+        prev = json.load(open(dest)).get("companies", [])
+    except (OSError, ValueError):
+        prev = []
+    prev_by_id = {c["id"]: c for c in prev}
+    for c in out:
+        old = prev_by_id.get(c["id"])
+        if old and old.get("google_url"):
+            for k in ("address", "city", "state", "zip", "phone", "website", "hours"):
+                c[k] = c[k] or old.get(k)
+            for k in ("rating", "rating_count", "google_url"):
+                c[k] = old.get(k)
+    out += [c for c in prev if c.get("source") == "google"]
+    out.sort(key=lambda c: (c["categories"][0], c["name"].lower()))
     with open(dest, "w") as f:
         json.dump({"generated": time.strftime("%Y-%m-%d"), "center": CENTER,
                    "radius_mi": 50, "source": "OpenStreetMap contributors (ODbL)",
