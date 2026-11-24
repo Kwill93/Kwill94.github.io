@@ -4,7 +4,7 @@ Indianapolis from OpenStreetMap (Overpass API) and write data/companies.json.
 
 Usage: python3 scripts/fetch_osm.py
 """
-import json, math, os, socket, sys, time, urllib.parse, urllib.request
+import json, math, os, re, socket, sys, time, urllib.parse, urllib.request
 
 # Some Overpass hosts are unreachable over IPv6 from CI runners; use IPv4 only.
 _gai = socket.getaddrinfo
@@ -59,7 +59,7 @@ CATEGORIES = {
     ("craft", "scaffolder"): "General Contractor",
     ("craft", "metal_construction"): "Welding & Fabrication",
     ("craft", "welder"): "Welding & Fabrication",
-    ("craft", "electronics_repair"): "Appliance & Electronics Repair",
+    ("craft", "electronics_repair"): None,  # mostly phone-repair shops
     ("shop", "appliance"): None,
     ("craft", "handyman"): "Handyman",
     ("craft", "tree_surgeon"): "Tree Service",
@@ -122,7 +122,12 @@ def miles(lat, lon):
     a = math.sin(dp/2)**2 + math.cos(p1)*math.cos(p2)*math.sin(dl/2)**2
     return 2 * R * math.asin(math.sqrt(a))
 
+# Retailers/distributors whose names trip the keyword match but don't provide service.
+EXCLUDE = re.compile(r"\b(supply|supplies|wholesale|distribut\w*|bikes?|marine|cell phone)\b", re.I)
+
 def categorize(t):
+    if EXCLUDE.search(t.get("name", "")):
+        return []
     cats = []
     for (k, v), c in CATEGORIES.items():
         vals = [x.strip() for x in t.get(k, "").split(";")]
