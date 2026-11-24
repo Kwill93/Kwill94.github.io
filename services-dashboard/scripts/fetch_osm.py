@@ -4,12 +4,22 @@ Indianapolis from OpenStreetMap (Overpass API) and write data/companies.json.
 
 Usage: python3 scripts/fetch_osm.py
 """
-import json, math, os, sys, time, urllib.parse, urllib.request
+import json, math, os, socket, sys, time, urllib.parse, urllib.request
+
+# Some Overpass hosts are unreachable over IPv6 from CI runners; use IPv4 only.
+_gai = socket.getaddrinfo
+socket.getaddrinfo = lambda h, p, f=0, *a, **k: _gai(h, p, socket.AF_INET, *a, **k)
 
 CENTER = (39.7684, -86.1581)          # Monument Circle, Indianapolis
 RADIUS_M = 80467                      # 50 miles
 ENDPOINTS = ["https://overpass-api.de/api/interpreter",
+             "https://overpass.private.coffee/api/interpreter",
+             "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
              "https://overpass.kumi.systems/api/interpreter"]
+# Bounding box around the 50-mile circle (S, W, N, E); exact distance is filtered in Python.
+_dlat = RADIUS_M / 111320
+_dlon = _dlat / math.cos(math.radians(CENTER[0]))
+BBOX = f"{CENTER[0]-_dlat:.4f},{CENTER[1]-_dlon:.4f},{CENTER[0]+_dlat:.4f},{CENTER[1]+_dlon:.4f}"
 
 # (OSM key, value) -> dashboard category
 CATEGORIES = {
@@ -75,31 +85,35 @@ KEYWORDS = [
     ("Tree Service", ["tree service", "tree care"]),
 ]
 
-def overpass_query():
-    pairs = {(k, v) for (k, v) in CATEGORIES}
-    lines = []
-    for k, v in sorted(pairs):
-        lines.append(f'  nwr["{k}"="{v}"](around:{RADIUS_M},{CENTER[0]},{CENTER[1]});')
+def overpass_queries():
+    """Several small queries: cheaper for public Overpass servers than one big one."""
+    by_key = {}
+    for (k, v) in CATEGORIES:
+        by_key.setdefault(k, []).append(v)
+    qs = []
+    for k, vals in sorted(by_key.items()):
+        rx = "|".join(sorted(vals))
+        qs.append((f"{k} tags", f'[out:json][timeout:180][bbox:{BBOX}];nwr["{k}"~"^({rx})$"];out center tags;'))
     rx = "|".join(w for _, ws in KEYWORDS for w in ws)
     for k in ("office", "shop", "craft"):
-        lines.append(f'  nwr["{k}"]["name"~"{rx}",i](around:{RADIUS_M},{CENTER[0]},{CENTER[1]});')
-    return "[out:json][timeout:300];\n(\n" + "\n".join(lines) + "\n);\nout center tags;"
+        qs.append((f"{k} name keywords", f'[out:json][timeout:180][bbox:{BBOX}];nwr["{k}"]["name"~"{rx}",i];out center tags;'))
+    return qs
 
 def fetch(q):
     data = urllib.parse.urlencode({"data": q}).encode()
     last = None
-    for attempt in range(4):
+    for attempt in range(3):
         for url in ENDPOINTS:
             try:
                 req = urllib.request.Request(url, data=data,
                         headers={"User-Agent": "service-companies-dashboard/1.0"})
-                with urllib.request.urlopen(req, timeout=360) as r:
+                with urllib.request.urlopen(req, timeout=200) as r:
                     return json.load(r)
             except Exception as e:  # noqa
                 last = e
                 print(f"  {url} failed: {e}", file=sys.stderr)
-        time.sleep(10 * (attempt + 1))
-    raise SystemExit(f"Overpass failed: {last}")
+        time.sleep(15 * (attempt + 1))
+    raise RuntimeError(f"all Overpass endpoints failed: {last}")
 
 def miles(lat, lon):
     R = 3958.8
@@ -129,11 +143,21 @@ def first(t, *keys):
     return None
 
 def main():
-    q = overpass_query()
-    print("Querying Overpass…", file=sys.stderr)
-    raw = fetch(q)
+    elements, failed = [], []
+    for label, q in overpass_queries():
+        print(f"Querying Overpass: {label}…", file=sys.stderr)
+        try:
+            got = fetch(q).get("elements", [])
+            print(f"  {len(got)} elements", file=sys.stderr)
+            elements += got
+        except RuntimeError as e:
+            print(f"  skipped: {e}", file=sys.stderr)
+            failed.append(label)
+    if not elements or any(l.endswith(" tags") for l in failed):
+        # Never overwrite good data with a partial result.
+        raise SystemExit(f"Overpass queries failed: {failed or 'no results'}")
     out, seen = [], set()
-    for el in raw.get("elements", []):
+    for el in elements:
         t = el.get("tags", {})
         name = t.get("name")
         if not name:
@@ -141,6 +165,8 @@ def main():
         lat = el.get("lat") or el.get("center", {}).get("lat")
         lon = el.get("lon") or el.get("center", {}).get("lon")
         if lat is None:
+            continue
+        if miles(lat, lon) > 50:
             continue
         cats = categorize(t)
         if not cats:
