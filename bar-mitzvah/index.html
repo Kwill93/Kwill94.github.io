@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Private event: keep out of search engines -->
+  <meta name="theme-color" content="#000000" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <title>Bar Mitzvah</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+
+  <!-- ============ ACCESS GATE ============ -->
+  <div id="gate" class="gate" hidden>
+    <div class="gate-card">
+      <img src="assets/ben-logo.png" alt="Ben — March 13, 2027" class="gate-logo" />
+      <h1 class="gate-title">You're Invited</h1>
+      <p class="gate-sub">Please enter the passcode from your invitation.</p>
+      <form id="gate-form" autocomplete="off">
+        <label for="passcode" class="sr-only">Passcode</label>
+        <input id="passcode" type="text" placeholder="Passcode" autocapitalize="characters" required />
+        <button type="submit" class="btn btn-cyan">Enter</button>
+        <p id="gate-error" class="gate-error" role="alert" hidden>That passcode didn't match. Please check your invitation.</p>
+      </form>
+      <p class="gate-hint">Tip: scanning the QR code on your invitation signs you in automatically.</p>
+    </div>
+  </div>
+
+  <!-- ============ SITE ============ -->
+  <div id="site" hidden>
+    <nav class="nav">
+      <a href="#top" class="nav-brand"><img src="assets/ben-logo.png" alt="Ben" /></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <ul class="nav-links">
+        <li><a href="#details">Details</a></li>
+        <li><a href="#hotel">Hotel</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#rsvp" class="nav-cta">RSVP</a></li>
+      </ul>
+    </nav>
+
+    <header id="top" class="hero">
+      <div class="hero-inner">
+        <p class="serif-caps">The honor of your presence<br />is joyfully requested as our son</p>
+        <h1 class="hero-name"><span data-bind="honoreeName"></span><small data-bind="honoreeMiddleName"></small></h1>
+        <p class="hebrew" data-bind="hebrewName"></p>
+        <p class="serif-caps">is called to the Torah as a</p>
+        <p class="hero-title">Bar Mitzvah</p>
+        <p class="serif-caps hero-date" data-bind="displayDate"></p>
+        <div class="chevrons" aria-hidden="true">&laquo;&laquo;&laquo;&nbsp;&raquo;&raquo;&raquo;</div>
+        <div class="countdown" id="countdown" aria-live="polite"></div>
+        <a href="#rsvp" class="btn btn-cyan btn-lg">RSVP by <span data-bind="rsvpDeadline"></span></a>
+        <p class="serif-caps hosts" data-bind="hostNames"></p>
+      </div>
+    </header>
+
+    <main>
+      <section id="details" class="section">
+        <h2 class="section-title">The Details</h2>
+        <div class="cards" id="event-cards"></div>
+      </section>
+
+      <section id="hotel" class="section section-alt">
+        <h2 class="section-title">Accommodations</h2>
+        <div class="hotel-card">
+          <div>
+            <h3 data-bind="hotel.name"></h3>
+            <p class="muted" data-bind="hotel.address"></p>
+            <ul class="hotel-facts">
+              <li data-needs="hotel.rate"><strong>Group rate:</strong> <span data-bind="hotel.rate"></span></li>
+              <li data-needs="hotel.groupCode"><strong>Group code:</strong> <code data-bind="hotel.groupCode"></code></li>
+              <li data-needs="hotel.cutoff"><strong>Book by:</strong> <span data-bind="hotel.cutoff"></span></li>
+            </ul>
+            <p data-bind="hotel.note"></p>
+          </div>
+          <div class="hotel-action">
+            <a id="hotel-link" class="btn btn-cyan btn-lg" target="_blank" rel="noopener">Book at our rate</a>
+            <p id="hotel-pending" class="muted small" hidden>Hotel details and booking link coming soon — check back shortly.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <h2 class="section-title">Good to Know</h2>
+        <div class="faq">
+          <details><summary>What should I wear?</summary><p id="faq-attire"></p></details>
+          <details><summary>Are children invited?</summary><p>Children named on your invitation are warmly welcome. Please include them in your RSVP so we can plan meals and seating.</p></details>
+          <details><summary>I have a food allergy — what should I do?</summary><p>Please list every allergy and dietary need for each guest on the RSVP form. We share these directly with the caterer.</p></details>
+          <details><summary>What about phones during the service?</summary><p>We kindly ask that phones be silenced and put away during the Shabbat service. Snap away at the party!</p></details>
+          <details><summary>Can I change my RSVP?</summary><p>Yes — just submit the form again with the same email address and we'll use your most recent response.</p></details>
+          <details><summary>Who do I contact with questions?</summary><p id="faq-contact"></p></details>
+        </div>
+      </section>
+
+      <section id="rsvp" class="section section-alt">
+        <h2 class="section-title">RSVP</h2>
+        <p class="center muted">Kindly respond by <strong data-bind="rsvpDeadline"></strong></p>
+
+        <form id="rsvp-form" class="rsvp" novalidate>
+          <div class="grid-2">
+            <label>Your name(s) as on the invitation
+              <input name="partyName" required placeholder="e.g. The Goldberg Family" />
+            </label>
+            <label>Email
+              <input name="email" type="email" required placeholder="you@example.com" />
+            </label>
+          </div>
+          <label>Phone (optional)
+            <input name="phone" type="tel" placeholder="(555) 555-5555" />
+          </label>
+
+          <fieldset class="attending">
+            <legend>Will you be joining us?</legend>
+            <label class="pill"><input type="radio" name="attending" value="Yes" required /> <span>Joyfully accepts</span></label>
+            <label class="pill"><input type="radio" name="attending" value="No" /> <span>Regretfully declines</span></label>
+          </fieldset>
+
+          <div id="attending-yes" hidden>
+            <fieldset class="events-pick">
+              <legend>Which events will you attend?</legend>
+              <div id="event-checkboxes"></div>
+            </fieldset>
+
+            <div class="guests-head">
+              <h3>Guests in your party</h3>
+              <p class="muted small">Add everyone who is coming, including yourself.</p>
+            </div>
+            <div id="guests"></div>
+            <button type="button" id="add-guest" class="btn btn-outline">+ Add another guest</button>
+
+            <div class="grid-2">
+              <label>Staying at the hotel?
+                <select name="hotel">
+                  <option value="">Select…</option>
+                  <option>Yes, at the group hotel</option>
+                  <option>Yes, somewhere else</option>
+                  <option>No, local</option>
+                </select>
+              </label>
+              <label>Song request for the DJ
+                <input name="song" placeholder="Get everyone dancing!" />
+              </label>
+            </div>
+          </div>
+
+          <label><span>A note for <span data-bind="honoreeNickname"></span> (optional)</span>
+            <textarea name="message" rows="3" placeholder="Mazel tov!"></textarea>
+          </label>
+
+          <!-- honeypot: humans never see this -->
+          <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" />
+
+          <p id="rsvp-error" class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn btn-cyan btn-lg btn-block" id="rsvp-submit">Send RSVP</button>
+          <p id="preview-note" class="muted small center" hidden>Preview mode: the RSVP destination isn't connected yet, so responses aren't saved.</p>
+        </form>
+
+        <div id="rsvp-thanks" class="thanks" hidden>
+          <div class="chevrons" aria-hidden="true">&laquo;&laquo;&laquo;&nbsp;&raquo;&raquo;&raquo;</div>
+          <h3 id="thanks-title">Thank you!</h3>
+          <p id="thanks-body"></p>
+          <button type="button" class="btn btn-outline" id="rsvp-again">Edit or send another RSVP</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <img src="assets/ben-logo.png" alt="Ben" class="footer-logo" />
+      <p class="serif-caps">With love, <span data-bind="hostNames"></span></p>
+      <p class="small muted">Questions? <a id="footer-contact"></a></p>
+    </footer>
+  </div>
+
+  <template id="guest-tpl">
+    <div class="guest">
+      <div class="guest-top">
+        <strong class="guest-num"></strong>
+        <button type="button" class="link remove-guest">Remove</button>
+      </div>
+      <div class="grid-2">
+        <label>Full name
+          <input class="g-name" required />
+        </label>
+        <label>Age group
+          <select class="g-age">
+            <option>Adult</option>
+            <option>Teen (13–17)</option>
+            <option>Child (under 13)</option>
+          </select>
+        </label>
+      </div>
+      <div class="diet">
+        <span class="diet-label">Dietary needs</span>
+        <div class="diet-opts"></div>
+      </div>
+      <label>Allergies or other restrictions
+        <input class="g-allergy" placeholder="e.g. severe peanut allergy — carries EpiPen" />
+      </label>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
