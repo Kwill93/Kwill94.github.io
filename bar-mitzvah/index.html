@@ -4,11 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Private event: keep out of search engines -->
+  <meta name="theme-color" content="#000000" />
   <meta name="robots" content="noindex, nofollow, noarchive" />
   <title>Bar Mitzvah</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="config.js"></script>
 </head>
@@ -17,13 +18,13 @@
   <!-- ============ ACCESS GATE ============ -->
   <div id="gate" class="gate" hidden>
     <div class="gate-card">
-      <div class="star" aria-hidden="true">✡</div>
+      <img src="assets/ben-logo.png" alt="Ben — March 13, 2027" class="gate-logo" />
       <h1 class="gate-title">You're Invited</h1>
       <p class="gate-sub">Please enter the passcode from your invitation.</p>
       <form id="gate-form" autocomplete="off">
         <label for="passcode" class="sr-only">Passcode</label>
         <input id="passcode" type="text" placeholder="Passcode" autocapitalize="characters" required />
-        <button type="submit" class="btn btn-gold">Enter</button>
+        <button type="submit" class="btn btn-cyan">Enter</button>
         <p id="gate-error" class="gate-error" role="alert" hidden>That passcode didn't match. Please check your invitation.</p>
       </form>
       <p class="gate-hint">Tip: scanning the QR code on your invitation signs you in automatically.</p>
@@ -33,7 +34,7 @@
   <!-- ============ SITE ============ -->
   <div id="site" hidden>
     <nav class="nav">
-      <a href="#top" class="nav-brand" data-bind="honoreeName"></a>
+      <a href="#top" class="nav-brand"><img src="assets/ben-logo.png" alt="Ben" /></a>
       <button class="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
       <ul class="nav-links">
         <li><a href="#details">Details</a></li>
@@ -45,16 +46,16 @@
 
     <header id="top" class="hero">
       <div class="hero-inner">
-        <p class="eyebrow">Please join us as</p>
-        <h1 class="hero-name"><span data-bind="honoreeName"></span></h1>
+        <p class="serif-caps">The honor of your presence<br />is joyfully requested as our son</p>
+        <h1 class="hero-name"><span data-bind="honoreeName"></span><small data-bind="honoreeMiddleName"></small></h1>
         <p class="hebrew" data-bind="hebrewName"></p>
-        <p class="hero-sub">is called to the Torah as a</p>
+        <p class="serif-caps">is called to the Torah as a</p>
         <p class="hero-title">Bar Mitzvah</p>
-        <div class="divider" aria-hidden="true"><span>✡</span></div>
-        <p class="hero-date" data-bind="displayDate"></p>
+        <p class="serif-caps hero-date" data-bind="displayDate"></p>
+        <div class="chevrons" aria-hidden="true">&laquo;&laquo;&laquo;&nbsp;&raquo;&raquo;&raquo;</div>
         <div class="countdown" id="countdown" aria-live="polite"></div>
-        <a href="#rsvp" class="btn btn-gold btn-lg">RSVP by <span data-bind="rsvpDeadline"></span></a>
-        <p class="hosts">Together with his parents, <span data-bind="hostNames"></span></p>
+        <a href="#rsvp" class="btn btn-cyan btn-lg">RSVP by <span data-bind="rsvpDeadline"></span></a>
+        <p class="serif-caps hosts" data-bind="hostNames"></p>
       </div>
     </header>
 
@@ -71,15 +72,15 @@
             <h3 data-bind="hotel.name"></h3>
             <p class="muted" data-bind="hotel.address"></p>
             <ul class="hotel-facts">
-              <li><strong>Group rate:</strong> <span data-bind="hotel.rate"></span></li>
-              <li id="hotel-code-row"><strong>Group code:</strong> <code data-bind="hotel.groupCode"></code></li>
-              <li><strong>Book by:</strong> <span data-bind="hotel.cutoff"></span></li>
+              <li data-needs="hotel.rate"><strong>Group rate:</strong> <span data-bind="hotel.rate"></span></li>
+              <li data-needs="hotel.groupCode"><strong>Group code:</strong> <code data-bind="hotel.groupCode"></code></li>
+              <li data-needs="hotel.cutoff"><strong>Book by:</strong> <span data-bind="hotel.cutoff"></span></li>
             </ul>
             <p data-bind="hotel.note"></p>
           </div>
           <div class="hotel-action">
-            <a id="hotel-link" class="btn btn-gold btn-lg" target="_blank" rel="noopener">Book at our rate</a>
-            <p id="hotel-pending" class="muted small" hidden>Booking link coming soon — check back shortly.</p>
+            <a id="hotel-link" class="btn btn-cyan btn-lg" target="_blank" rel="noopener">Book at our rate</a>
+            <p id="hotel-pending" class="muted small" hidden>Hotel details and booking link coming soon — check back shortly.</p>
           </div>
         </div>
       </section>
@@ -147,7 +148,7 @@
             </div>
           </div>
 
-          <label><span>A note for <span data-bind="honoreeName"></span> (optional)</span>
+          <label><span>A note for <span data-bind="honoreeNickname"></span> (optional)</span>
             <textarea name="message" rows="3" placeholder="Mazel tov!"></textarea>
           </label>
 
@@ -155,12 +156,12 @@
           <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" />
 
           <p id="rsvp-error" class="form-error" role="alert" hidden></p>
-          <button type="submit" class="btn btn-gold btn-lg btn-block" id="rsvp-submit">Send RSVP</button>
+          <button type="submit" class="btn btn-cyan btn-lg btn-block" id="rsvp-submit">Send RSVP</button>
           <p id="preview-note" class="muted small center" hidden>Preview mode: the RSVP destination isn't connected yet, so responses aren't saved.</p>
         </form>
 
         <div id="rsvp-thanks" class="thanks" hidden>
-          <div class="star" aria-hidden="true">✡</div>
+          <div class="chevrons" aria-hidden="true">&laquo;&laquo;&laquo;&nbsp;&raquo;&raquo;&raquo;</div>
           <h3 id="thanks-title">Thank you!</h3>
           <p id="thanks-body"></p>
           <button type="button" class="btn btn-outline" id="rsvp-again">Edit or send another RSVP</button>
@@ -169,7 +170,8 @@
     </main>
 
     <footer class="footer">
-      <p>With love, <span data-bind="hostNames"></span></p>
+      <img src="assets/ben-logo.png" alt="Ben" class="footer-logo" />
+      <p class="serif-caps">With love, <span data-bind="hostNames"></span></p>
       <p class="small muted">Questions? <a id="footer-contact"></a></p>
     </footer>
   </div>

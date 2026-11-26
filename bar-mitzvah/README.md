@@ -1,6 +1,6 @@
 # Bar Mitzvah website + RSVP
 
-A private event site for invited guests only: event details, a hotel room-block link, an FAQ, and an RSVP form
+A private event site for Benjamin Jacob's bar mitzvah (March 13, 2027), styled to match the invitation suite, for invited guests only: event details, a hotel room-block link, an FAQ, and an RSVP form
 that collects head-counts (adults / teens / children), which events each guest is attending, and **dietary needs and
 allergies for each guest**.
 
@@ -14,12 +14,13 @@ allergies for each guest**.
 | `index.html`, `styles.css`, `app.js` | The site itself. |
 | `backend/rsvp-google-apps-script.js` | Saves RSVPs to a Google Sheet (free, no server needed). |
 | `tools/make_qr.py` | Makes the invitation QR code. |
-| `qr-rsvp.png` / `qr-rsvp.svg` | QR for the default passcode `MAZELTOV`. Make a new one once the URL or passcode is final. |
+| `qr-rsvp.png` / `qr-rsvp.svg` / `qr-rsvp-cyan.png` | QR for the default passcode `MAZELTOV`: black on white, and cyan on black to match the invitation. Make a new one once the URL or passcode is final. |
+| `assets/` | The BEN logo and the galaxy artwork, cropped from the invitation suite. |
 
 ## Setup checklist
 
 ### 1. Fill in the details
-Edit `config.js`: names, dates, venues, addresses, attire, contact info. The values in it now are **placeholders**.
+The invitation details are already in `config.js`. Still to fill in: the Hebrew name (`hebrewName`), the contact email and phone, and the hotel.
 
 ### 2. Add the hotel link
 Paste the group-rate booking URL into `hotel.bookingUrl`, and fill in `groupCode`, `rate` and `cutoff`. Until a URL is

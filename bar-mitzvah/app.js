@@ -61,8 +61,9 @@
     $$("[data-bind]").forEach(el => {
       const v = get(el.dataset.bind);
       el.textContent = v || "";
-      if (!v && el.dataset.bind === "hebrewName") el.hidden = true;
+      if (!v) el.hidden = true;
     });
+    $$("[data-needs]").forEach(el => { if (!get(el.dataset.needs)) el.hidden = true; });
 
     $("#event-cards").innerHTML = E.events.map(ev => `
       <article class="card">
@@ -82,7 +83,6 @@
     const link = $("#hotel-link");
     if (E.hotel.bookingUrl) link.href = E.hotel.bookingUrl;
     else { link.hidden = true; $("#hotel-pending").hidden = false; }
-    if (!E.hotel.groupCode) $("#hotel-code-row").hidden = true;
 
     // FAQ + contact
     $("#faq-attire").innerHTML = E.events.map(ev => `<strong>${esc(ev.title)}:</strong> ${esc(ev.attire)}`).join("<br>");
@@ -247,7 +247,7 @@
         (E.hotel.bookingUrl ? "Don't forget to book your hotel room at our group rate." : "");
     } else {
       $("#thanks-title").textContent = "We'll miss you!";
-      $("#thanks-body").textContent = `Thank you for letting us know. ${E.honoreeName} appreciates your good wishes.`;
+      $("#thanks-body").textContent = `Thank you for letting us know. ${E.honoreeNickname || E.honoreeName} appreciates your good wishes.`;
     }
     box.hidden = false;
     box.scrollIntoView({ block: "center" });

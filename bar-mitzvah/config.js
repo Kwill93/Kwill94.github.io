@@ -4,54 +4,57 @@
    ========================================================================== */
 window.EVENT = {
   // --- The guest of honor -------------------------------------------------
-  honoreeName: "Benjamin",            // first name shown in the big heading
-  honoreeFullName: "Benjamin Cohen",  // used in page title / footer
-  hebrewName: "בנימין",               // optional — set to "" to hide
-  hostNames: "David & Sarah Cohen",   // "Together with his parents ..."
+  honoreeName: "Benjamin",
+  honoreeMiddleName: "Jacob",
+  honoreeNickname: "Ben",
+  honoreeFullName: "Benjamin Jacob",
+  hebrewName: "",                     // add the Hebrew name here (shown under his name)
+  hostNames: "James and Aviva Marer",
 
   // --- Dates ----------------------------------------------------------------
-  // ISO date-time of the service; drives the countdown.
-  eventDateISO: "2027-05-15T10:00:00-04:00",
-  displayDate: "Saturday, May 15, 2027",
-  rsvpDeadline: "April 15, 2027",
+  // ISO date-time of the service; drives the countdown (EST, before DST starts).
+  eventDateISO: "2027-03-13T10:30:00-05:00",
+  displayDate: "Saturday, March 13, 2027",
+  rsvpDeadline: "February 6, 2027",
 
   // --- Events (add/remove entries freely) -------------------------------
   events: [
     {
       title: "Bar Mitzvah Service",
-      time: "10:00 AM",
-      date: "Saturday, May 15, 2027",
-      venue: "Temple Beth Shalom",
-      address: "123 Main Street, Indianapolis, IN 46204",
-      mapUrl: "https://maps.google.com/?q=123+Main+Street+Indianapolis+IN",
-      note: "Kiddush luncheon to follow in the social hall.",
-      attire: "Dressy / Shabbat attire",
+      time: "10:30 AM",
+      date: "Saturday, March 13, 2027",
+      venue: "Indianapolis Hebrew Congregation",
+      address: "6501 North Meridian Street, Indianapolis, Indiana",
+      mapUrl: "https://maps.google.com/?q=Indianapolis+Hebrew+Congregation+6501+North+Meridian+Street+Indianapolis+IN",
+      note: "Kiddush luncheon to follow.",
+      attire: "Shabbat attire",
     },
     {
-      title: "Celebration Party",
-      time: "7:00 PM – 11:00 PM",
-      date: "Saturday, May 15, 2027",
-      venue: "The Grand Ballroom",
-      address: "456 Celebration Ave, Indianapolis, IN 46204",
-      mapUrl: "https://maps.google.com/?q=456+Celebration+Ave+Indianapolis+IN",
-      note: "Dinner, dancing, and a candle-lighting ceremony.",
-      attire: "Cocktail attire — comfy shoes for the dance floor!",
+      title: "Party",
+      time: "6:30 – 9:30 PM",
+      date: "Saturday, March 13, 2027",
+      venue: "Combat Ops Entertainment",
+      address: "4650 E Southport Road, Suites E/F, Indianapolis, Indiana",
+      mapUrl: "https://maps.google.com/?q=4650+E+Southport+Road+Indianapolis+IN",
+      note: "Get your game on as the celebration continues in honor of Ben!",
+      attire: "Casual attire",
     },
   ],
 
   // --- Hotel room block ---------------------------------------------------
   hotel: {
-    name: "Downtown Marriott",
-    address: "789 Hotel Blvd, Indianapolis, IN 46204",
+    // Fill these in when the room block is set. Empty fields are hidden.
+    name: "",                // e.g. "Hilton Indianapolis North"
+    address: "",
     bookingUrl: "",          // <-- paste the group-rate booking link here
-    groupCode: "COHEN2027",  // shown to guests; set "" to hide
-    rate: "$159 / night",
-    cutoff: "April 14, 2027",
-    note: "Shuttle service provided between the hotel and the party.",
+    groupCode: "",           // shown to guests; leave "" to hide
+    rate: "",                // e.g. "$149 / night"
+    cutoff: "",              // e.g. "February 10, 2027"
+    note: "We've reserved a block of rooms at a special rate for out-of-town guests.",
   },
 
   // --- Contact for questions ----------------------------------------------
-  contactName: "Sarah Cohen",
+  contactName: "James and Aviva Marer",
   contactEmail: "family@example.com",
   contactPhone: "",          // optional
 
